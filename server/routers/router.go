@@ -19,5 +19,8 @@ func Init(r *gin.Engine) {
 		api.POST("/user/all", provider.GetUserInfos)
 		api.POST("/user/single/:uid", provider.GetUserInfo)
 		api.POST("/user/edit", provider.EditUserInfo)
+
+		// recite
+		api.POST("/queue/add", provider.AddQueue)
 	}
 }

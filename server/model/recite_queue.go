@@ -15,9 +15,9 @@ const (
 
 type ReciteQueue struct {
 	gorm.Model
-	UserInfoID     uint
-	UserInfo       UserInfo `gorm:"references:UserId"`
-	RecordInfoID   uint
+	UserInfoID     uint       `gorm:"uniqueIndex:recite_queue_idx"`
+	UserInfo       UserInfo   `gorm:"references:UserId"`
+	RecordInfoID   uint       `gorm:"uniqueIndex:recite_queue_idx"`
 	RecordInfo     RecordInfo `gorm:"references:ID"`
 	RemindTimeUnix int64      // next remind time in Unix
 	Round          uint8      // 轮数

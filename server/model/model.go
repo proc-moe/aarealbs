@@ -40,7 +40,8 @@ func Init() {
 		panic(err)
 	}
 
-	// init data
+	// INIT data
+
 	// default batch info
 	if DB.Where("id = ?", 1).Find(&BatchInfo{}).RowsAffected == 0 {
 		klog.I("no default batch, adding")
@@ -51,6 +52,22 @@ func Init() {
 		}
 		r := DB.Create(&v)
 		klog.I("no default batch, adding, rows=%v", r.RowsAffected)
+	} else {
+		klog.I("default batch found, skip")
+	}
+
+	if DB.Where("p_id = ?", 0).Find(&RecitePattern{}).RowsAffected == 0 {
+		klog.I("no default pattern, adding")
+		x := []uint{5 * 60, 30 * 60, 12 * 3600, 86400, 2 * 86400, 4 * 86400, 7 * 86400, 15 * 86400}
+		for k, v := range x {
+			v := RecitePattern{
+				PID:        0,
+				Round:      uint(k),
+				TimeGapEst: v,
+			}
+			r := DB.Create(&v)
+			klog.I("no default pattern, adding, rows=%v", r.RowsAffected)
+		}
 	} else {
 		klog.I("default batch found, skip")
 	}
