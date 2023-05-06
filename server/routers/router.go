@@ -22,5 +22,22 @@ func Init(r *gin.Engine) {
 
 		// recite
 		api.POST("/queue/add", provider.AddQueue)
+		api.GET("/queue/user/:uid", provider.GetUserQueue)
+		api.POST("/record/history/:user_id", provider.GetReciteHistory)
+		api.POST("/recite/:recite_id", provider.Recite)
+		// api.POST("/api/timeup_queue/user/:user_id", provider.GetTimeUpQueue)
+
+		// // monitor
+		// api.GET("/monitor/single/:id", provider.GetMonitor)
+		// api.GET("/monitor/count", provider.MonitorCount)
+
+		// // 6 effiency
+		// api.GET("/effiency/single/:id", provider.GetEffiency)
+		// api.GET("/effiency/count", provider.EffiencyCount)
+
+		// // 7 pattern
+		// api.GET("/pattern/get/:pattern_id", provider.GetPatterns)
+		// api.POST("/pattern/add", provider.AddPattern)
+		// api.POST("/pattern/edit/:id", provider.EditPattern)
 	}
 }

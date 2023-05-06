@@ -48,28 +48,32 @@ func Login(c *gin.Context) {
 
 // API 1.2
 func AddToken(c *gin.Context) {
+	var USERID uint = 114515
+	var USERNAME = "normal_user"
+	var STATUS uint = 1
+	var TOKEN = "normal"
 	userInfo := model.UserInfo{
-		UserId:   114514,
-		UserName: "YJSNPITEST",
-		Status:   0,
+		UserId:   USERID,
+		UserName: USERNAME,
+		Status:   STATUS,
 	}
 	token := model.Token{
-		Token:      "test",
-		UserInfoID: 114514,
+		Token:      TOKEN,
+		UserInfoID: USERID,
 		Expire:     2147483647,
 	}
 	returnmsg := ""
 	fmt.Println()
-	if model.DB.Where("user_id = ?", 114514).First(&model.UserInfo{}).RowsAffected == 0 {
+	if model.DB.Where("user_id = ?", USERID).First(&model.UserInfo{}).RowsAffected == 0 {
 		r := model.DB.Create(&userInfo)
-		fmt.Printf("[AddUser] ID=114514, row affected = %v\n", r.RowsAffected)
+		fmt.Printf("[AddUser] ID, row affected = %v\n", r.RowsAffected)
 	} else {
 		returnmsg += "user already exists..."
 	}
 
-	if model.DB.Where("token = ?", "test").Find(&model.Token{}).RowsAffected == 0 {
+	if model.DB.Where("token = ?", TOKEN).Find(&model.Token{}).RowsAffected == 0 {
 		r := model.DB.Create(&token)
-		fmt.Printf("[AddToken] token=test, row affected = %v\n", r.RowsAffected)
+		fmt.Printf("[AddToken] token, row affected = %v\n", r.RowsAffected)
 	} else {
 		returnmsg += "token already exists"
 	}

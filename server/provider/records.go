@@ -81,7 +81,7 @@ func GetRecords(c *gin.Context) {
 	}
 
 	var count int64
-	model.DB.Model(&model.RecordInfo{}).Count(&count)
+	model.DB.Model(&model.RecordInfo{}).Where("user_info_id = ?", userId).Count(&count)
 	var DBrecords []model.RecordInfo
 	records := make([]Record, 0)
 	model.DB.Offset(int(offset)).Limit(int(limit)).Where("user_info_id = ?", userId).Find(&DBrecords)
@@ -100,7 +100,7 @@ func GetRecords(c *gin.Context) {
 	}
 
 	rsp := RecordsRsp{
-		Code:   200,
+		Code:   0,
 		Total:  int(count),
 		Record: records,
 		Msg:    "success",
