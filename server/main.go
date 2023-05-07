@@ -32,10 +32,8 @@ package main
 //		fmt.Printf("%v\n", token)
 //	}
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/proc-moe/aarealbs/server/model"
-	"github.com/proc-moe/aarealbs/server/routers"
-	"github.com/proc-moe/aarealbs/server/utils/klog"
+	"fmt"
+	"time"
 )
 
 type Token struct {
@@ -43,9 +41,20 @@ type Token struct {
 }
 
 func main() {
-	klog.Init()
-	r := gin.Default()
-	model.Init()
-	routers.Init(r)
-	r.Run(":9987")
+	ticker := time.NewTicker(5 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				fmt.Println("nioha")
+			}
+		}
+	}()
+	// klog.Init()
+	// r := gin.Default()
+	// r.Use(cors.Cors())
+	// model.Init()
+	// routers.Init(r)
+	// go service.MonitorStart()
+	// r.Run(":9987")
 }

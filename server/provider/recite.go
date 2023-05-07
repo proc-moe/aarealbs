@@ -8,13 +8,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/proc-moe/aarealbs/server/e"
 	"github.com/proc-moe/aarealbs/server/model"
+	"github.com/proc-moe/aarealbs/server/service"
 	"github.com/proc-moe/aarealbs/server/utils/auth"
 	"github.com/proc-moe/aarealbs/server/utils/klog"
 	"gorm.io/gorm"
 )
 
 type AddQueueReq struct {
-	UserID       int `json:"user_info_id"`
+	UserID       int `json:"uid"`
 	RecordInfoID int `json:"record_info_id"`
 }
 
@@ -77,6 +78,8 @@ func AddQueue(c *gin.Context) {
 		c.JSON(200, rsp)
 		return
 	}
+
+	service.ReciteProcessReciteStart(req.UserID)
 	rsp := EditRecordRsp{
 		Code: 0,
 		Msg:  "success",
@@ -96,7 +99,8 @@ type UserQueue struct {
 	CreatedAt      string `json:"created_at"`
 	UpdatedAt      string `json:"updated_at"`
 	DeletedAt      string `json:"deleted_at"`
-	UserId         int    `json:"user_id"`
+	UserId         int    `json:"uid"`
+	RecordInfoID   int    `json:"record_info_id"`
 	RemindTimeUnix int    `json:"remind_time_unix"`
 	Round          int    `json:"round"`
 	RoundMax       int    `json:"round_max"`
@@ -185,6 +189,7 @@ func GetUserQueue(c *gin.Context) {
 			UpdatedAt:      v.UpdatedAt.Format(time.RFC822),
 			DeletedAt:      v.DeletedAt.Time.Format(time.RFC822),
 			UserId:         int(v.UserInfoID),
+			RecordInfoID:   int(v.RecordInfoID),
 			RemindTimeUnix: int(v.RemindTimeUnix),
 			Round:          int(v.Round),
 			RoundMax:       int(v.RoundMax),
@@ -213,7 +218,7 @@ type ReciteHistory struct {
 	CreatedAt    string `json:"created_at"`
 	UpdatedAt    string `json:"updated_at"`
 	DeletedAt    string `json:"deleted_at"`
-	UserInfoId   int    `json:"user_info_id"`
+	UserInfoId   int    `json:"uid"`
 	RecordInfoId int    `json:"record_info_id"`
 	TimeGap      int    `json:"time_gap"`
 	TimeGapEst   int    `json:"time_gap_est"`
@@ -354,6 +359,7 @@ func Recite(c *gin.Context) {
 		return
 	}
 	klog.I("[recite.go/recite] reciteID:%v", reciteId)
+	// -=================parse DONE======================
 
 	reciteQueue := &model.ReciteQueue{}
 	r := model.DB.Where("id = ?", reciteId).First(&reciteQueue)
@@ -392,13 +398,19 @@ func Recite(c *gin.Context) {
 	}
 	klog.I("[recite.go/recite] recordID:%v msg:%v", recordInfo.ID, recordInfo.Msg)
 
+	oldPattern := &model.RecitePattern{}
+	r = model.DB.Where("p_id = ? AND round = ?", recordInfo.PatternID, reciteQueue.Round).First(&oldPattern)
+
+	if req.Result == 0 {
+		reciteQueue.Round += 1
+	}
 	recitePattern := &model.RecitePattern{}
 	r = model.DB.Where("p_id = ? AND round = ?", recordInfo.PatternID, reciteQueue.Round).First(&recitePattern)
 
-	// 如果round大于等于roundMax或者没有pattern了，那就删除并更新到历史记录
-
-	if r.Error.Error() == "record not found" || reciteQueue.Round >= reciteQueue.RoundMax {
-		klog.E("record not found")
+	// 背完了
+	klog.I("now: %v", time.Now().Unix())
+	klog.I("queue remind time: %v", reciteQueue.RemindTimeUnix)
+	if r.Error != nil && r.Error.Error() == "record not found" || reciteQueue.Round >= reciteQueue.RoundMax {
 		model.DB.Transaction(func(tx *gorm.DB) error {
 			queue := model.ReciteQueue{}
 			queue.ID = uint(reciteId)
@@ -407,14 +419,15 @@ func Recite(c *gin.Context) {
 			r = model.DB.Create(&model.ReciteHistory{
 				UserInfoID:   reciteQueue.UserInfoID,
 				RecordInfoID: reciteQueue.RecordInfoID,
-				TimeGap:      uint(int(time.Now().Unix()) - int(reciteQueue.RemindTimeUnix) + int(recitePattern.TimeGapEst)),
-				TimeGapEst:   recitePattern.TimeGapEst,
+				TimeGap:      uint(time.Now().Unix() - reciteQueue.CreatedAt.Unix()),
+				TimeGapEst:   oldPattern.TimeGapEst,
 				Result:       uint(req.Result),
 			})
 			klog.I("create history, row=%v", r.RowsAffected)
 			return nil
 		})
-
+		service.UpdateEffiency(int(reciteQueue.UserInfoID), req.Result, int(time.Now().Unix())-int(reciteQueue.CreatedAt.Unix())-int(oldPattern.TimeGapEst))
+		service.ReciteProcessReciteDone(int(reciteQueue.UserInfoID))
 		rsp := ReciteRsp{
 			Code: 200,
 			Msg:  fmt.Sprintf("rows affected %v", r.RowsAffected),
@@ -422,6 +435,7 @@ func Recite(c *gin.Context) {
 		c.JSON(200, rsp)
 		return
 	}
+	// 否则就报错
 	if r.RowsAffected == 0 || r.Error != nil {
 		rsp := ReciteRsp{
 			Code: e.DB_ERR,
@@ -445,7 +459,7 @@ func Recite(c *gin.Context) {
 		r = model.DB.Create(&model.ReciteHistory{
 			UserInfoID:   reciteQueue.UserInfoID,
 			RecordInfoID: reciteQueue.RecordInfoID,
-			TimeGap:      uint(int(time.Now().Unix()) - int(reciteQueue.RemindTimeUnix) + int(recitePattern.TimeGapEst)),
+			TimeGap:      uint(time.Now().Unix() - reciteQueue.CreatedAt.Unix()),
 			TimeGapEst:   recitePattern.TimeGapEst,
 			Result:       uint(req.Result),
 		})
@@ -454,7 +468,7 @@ func Recite(c *gin.Context) {
 			UserInfoID:     reciteQueue.UserInfoID,
 			RecordInfoID:   reciteQueue.RecordInfoID,
 			RemindTimeUnix: int64(timeEst),
-			Round:          reciteQueue.Round + 1,
+			Round:          reciteQueue.Round,
 			RoundMax:       reciteQueue.RoundMax,
 			Status:         reciteQueue.Status,
 		}
@@ -468,4 +482,108 @@ func Recite(c *gin.Context) {
 		Msg:  "success," + str,
 	})
 
+}
+
+func GetUserTimeUpQueue(c *gin.Context) {
+	token := c.Request.Header.Get("authorization")
+	userIdStr := c.Param("uid")
+	var userId int64
+	var err error
+	if userIdStr == "all" {
+		userId = -1
+	} else {
+		userId, err = strconv.ParseInt(userIdStr, 10, 64)
+		if err != nil {
+			klog.E("err parsing user_id,err=%v,userIDStr=%v", err, userIdStr)
+			rsp := RecordsRsp{
+				Code: e.PARAM_ERR,
+				Msg:  e.Str[e.PARAM_ERR],
+			}
+			c.JSON(200, rsp)
+			return
+		}
+
+	}
+	offsetStr := c.Query("offset")
+	offset, err := strconv.ParseInt(offsetStr, 10, 64)
+	if err != nil {
+		klog.E("err parsing offset")
+		rsp := RecordsRsp{
+			Code: e.PARAM_ERR,
+			Msg:  e.Str[e.PARAM_ERR],
+		}
+		c.JSON(200, rsp)
+		return
+	}
+	limitStr := c.Query("limit")
+	limit, err := strconv.ParseInt(limitStr, 10, 64)
+	if err != nil {
+		klog.E("err parsing limit")
+		rsp := RecordsRsp{
+			Code: e.PARAM_ERR,
+			Msg:  e.Str[e.PARAM_ERR],
+		}
+		c.JSON(200, rsp)
+		return
+	}
+	err1 := auth.UserIsAdmin(token)
+	err2 := auth.UserIsSelfAndUnbanned(token, int(userId))
+	if userId == -1 && err1 != nil {
+		klog.E("admin=%v not admin", err1.Error())
+		rsp := RecordsRsp{
+			Code: e.UNAUTHORIZED,
+			Msg:  e.Str[e.UNAUTHORIZED],
+		}
+		c.JSON(200, rsp)
+		return
+	}
+	if userId != -1 && err1 != nil && err2 != nil {
+		klog.E("admin=%v, self&unbanned=%v", err1.Error(), err2.Error())
+		klog.E("unauthorized")
+		rsp := RecordsRsp{
+			Code: e.UNAUTHORIZED,
+			Msg:  e.Str[e.UNAUTHORIZED],
+		}
+		c.JSON(200, rsp)
+		return
+	}
+
+	var count int64
+	var DBQueue []model.ReciteQueue
+	now := time.Now().Unix()
+	if userId != -1 {
+		model.DB.Model(&model.ReciteQueue{}).
+			Where("user_info_id = ? AND remind_time_unix < ?", userId, now).
+			Count(&count)
+		model.DB.Offset(int(offset)).Limit(int(limit)).
+			Where("user_info_id = ? AND remind_time_unix < ?", userId, now).
+			Find(&DBQueue)
+	} else {
+		model.DB.Model(&model.ReciteQueue{}).Count(&count)
+		model.DB.Offset(int(offset)).Limit(int(limit)).Find(&DBQueue)
+	}
+
+	rspQueue := make([]UserQueue, 0)
+	for _, v := range DBQueue {
+		queue := UserQueue{
+			ID:             int(v.ID),
+			CreatedAt:      v.CreatedAt.Format(time.RFC822),
+			UpdatedAt:      v.UpdatedAt.Format(time.RFC822),
+			DeletedAt:      v.DeletedAt.Time.Format(time.RFC822),
+			UserId:         int(v.UserInfoID),
+			RecordInfoID:   int(v.RecordInfoID),
+			RemindTimeUnix: int(v.RemindTimeUnix),
+			Round:          int(v.Round),
+			RoundMax:       int(v.RoundMax),
+			Status:         v.Status,
+		}
+		rspQueue = append(rspQueue, queue)
+	}
+	rsp := GetUserQueueRsp{
+		Code:   0,
+		Total:  int(count),
+		Record: rspQueue,
+		Msg:    "success",
+	}
+	c.JSON(200, rsp)
 }

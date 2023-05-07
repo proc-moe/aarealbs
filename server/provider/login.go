@@ -17,7 +17,7 @@ type LoginRsp struct {
 	Msg    string `json:"msg,omitempty"`
 	Token  string `json:"token,omitempty"`
 	Name   string `json:"name,omitempty"`
-	UserId int    `json:"user_id,omitempty"`
+	UserId int    `json:"uid,omitempty"`
 }
 
 // API 1.1

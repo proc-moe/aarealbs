@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/proc-moe/aarealbs/server/e"
 	"github.com/proc-moe/aarealbs/server/model"
+	"github.com/proc-moe/aarealbs/server/service"
 	"github.com/proc-moe/aarealbs/server/utils/auth"
 	"github.com/proc-moe/aarealbs/server/utils/klog"
 )
@@ -20,7 +21,7 @@ type Record struct {
 	BatchInfoID int    `json:"batch_info_id"`
 	Msg         string `json:"msg"`
 	RespMsg     string `json:"resp_msg"`
-	UserInfoID  int    `json:"user_info_id"`
+	UserInfoID  int    `json:"uid"`
 }
 type RecordsRsp struct {
 	Code   int      `json:"code"`
@@ -125,6 +126,7 @@ func EditRecord(c *gin.Context) {
 	token := c.Request.Header.Get("authorization")
 	var req EditRecordReq
 	c.BindJSON(&req)
+
 	record := model.RecordInfo{}
 	r := model.DB.Where("id = ?", req.ID).First(&record)
 	if r.RowsAffected == 0 {
@@ -185,10 +187,11 @@ type DeleteRecordRsp struct {
 }
 
 func DelRecord(c *gin.Context) {
+
 	token := c.Request.Header.Get("authorization")
 	var req DeleteRecordReq
 	c.BindJSON(&req)
-
+	klog.I("DelRecord REQ=%v", req)
 	// valid check
 	record := model.RecordInfo{}
 	r := model.DB.Where("id = ?", req.ID).First(&record)
@@ -242,7 +245,7 @@ type BatchAddSingleRecordReq struct {
 	BatchName string `json:"batch_name"`
 	Msg       string `json:"msg"`
 	RespMsg   string `json:"resp_msg"`
-	UserID    int    `json:"user_id"`
+	UserID    int    `json:"uid"`
 }
 
 type BatchAddRecordRsp struct {
@@ -257,6 +260,7 @@ func BatchAddRecord(c *gin.Context) {
 	// param check
 	var req BatchAddRecordReq
 	err := c.BindJSON(&req)
+	klog.I("BatchAddRecord REQ=%v", req)
 	if err != nil {
 		klog.E("params err")
 		rsp := BatchAddRecordRsp{
@@ -315,6 +319,8 @@ func BatchAddRecord(c *gin.Context) {
 			str += " id:"
 			str += strconv.FormatInt(int64(k), 10)
 			failedCount++
+		} else {
+			service.ReciteProcessAdd(userID)
 		}
 	}
 	if failedCount == 0 {
@@ -338,7 +344,7 @@ func BatchAddRecord(c *gin.Context) {
 type AddRecordReq struct {
 	Msg       string `json:"msg"`
 	RespMsg   string `json:"resp_msg"`
-	UserID    int    `json:"user_id"`
+	UserID    int    `json:"uid"`
 	PatternID int    `json:"pattern_id"`
 }
 
@@ -351,6 +357,7 @@ func AddRecord(c *gin.Context) {
 	token := c.Request.Header.Get("authorization")
 	var req AddRecordReq
 	c.BindJSON(&req)
+	klog.I("AddRecord REQ=%v", req)
 	err1 := auth.UserIsSelfAndUnbanned(token, req.UserID)
 	err2 := auth.UserIsAdmin(token)
 	if err1 != nil && err2 != nil {
@@ -371,6 +378,7 @@ func AddRecord(c *gin.Context) {
 		UserInfoID:  uint(req.UserID),
 		PatternID:   uint(req.PatternID),
 	}
+	klog.I("/record/add %v", dbrecord)
 	r := model.DB.Create(&dbrecord)
 	klog.I("create record, row = %v", r.RowsAffected)
 	// database create failed
@@ -382,7 +390,7 @@ func AddRecord(c *gin.Context) {
 		c.JSON(200, rsp)
 		return
 	}
-
+	service.ReciteProcessAdd(req.UserID)
 	rsp := AddRecordRsp{
 		Code: 0,
 		Msg:  "success",

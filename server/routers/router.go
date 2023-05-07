@@ -25,11 +25,11 @@ func Init(r *gin.Engine) {
 		api.GET("/queue/user/:uid", provider.GetUserQueue)
 		api.POST("/record/history/:user_id", provider.GetReciteHistory)
 		api.POST("/recite/:recite_id", provider.Recite)
-		// api.POST("/api/timeup_queue/user/:user_id", provider.GetTimeUpQueue)
+		api.GET("/timeup_queue/user/:uid", provider.GetUserTimeUpQueue)
 
 		// // monitor
-		// api.GET("/monitor/single/:id", provider.GetMonitor)
-		// api.GET("/monitor/count", provider.MonitorCount)
+		api.GET("/monitor/single/:id", provider.GetMonitorRecord)
+		api.GET("/monitor/count", provider.GetMonitorCount)
 
 		// // 6 effiency
 		// api.GET("/effiency/single/:id", provider.GetEffiency)

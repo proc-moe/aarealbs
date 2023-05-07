@@ -411,6 +411,7 @@ authorization - string
 ```
 
 
+
 # 4. 背诵
 ## 4.1 “开始记忆～“ 把一个词条导入背诵队列，也就是说几分钟后就会需要复习这个词条了
 - 只有自己才能开始一个词条的背诵
@@ -711,7 +712,7 @@ authorization - string
 
 ## 4.4 背诵操作
 ```
-URL:localhost:9987/api/recite/:recite_id
+URL:localhost:9987/api/recite/:queue_id
 URL:localhost:9987/api/recite/2342
 ```
 method: POST

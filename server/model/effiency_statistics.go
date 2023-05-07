@@ -7,9 +7,9 @@ import (
 
 type EffiencyStats struct {
 	gorm.Model
-	UserInfoID          uint
-	UserInfo            UserInfo `gorm:"references:UserId"`
-	AverageRememberTime string
-	ForgetRate          string
-	ResponseTime        string
+	UserInfoID   uint
+	UserInfo     UserInfo `gorm:"references:UserId"`
+	ForgetRate   float32
+	ResponseTime float32
+	ReciteTry    int
 }

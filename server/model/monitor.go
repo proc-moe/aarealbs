@@ -7,10 +7,8 @@ import (
 
 type Monitor struct {
 	gorm.Model
-	CPULoad         uint
-	MemLoad         uint
-	RecordInput     uint
-	RecordOutput    uint
-	WordCountInput  uint
-	WordCountOutput uint
+	CPULoad     float64
+	MemLoad     float64
+	RecordCount int
+	UserCount   int
 }

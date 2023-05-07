@@ -22,7 +22,7 @@ type GetAllUserInfoRsp struct {
 
 type UserInfo struct {
 	ID       int    `json:"id"`
-	UserID   int    `json:"user_id"`
+	UserID   int    `json:"uid"`
 	UserName string `json:"user_name"`
 	Status   int    `json:"status"`
 }
@@ -94,7 +94,7 @@ type GetUserInfoRsp struct {
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
 	DeletedAt string `json:"deleted_at"`
-	UserID    int    `json:"user_id"`
+	UserID    int    `json:"uid"`
 	UserName  string `json:"user_name"`
 	Status    int    `json:"status"`
 }
@@ -152,7 +152,7 @@ func GetUserInfo(c *gin.Context) {
 }
 
 type EditUserInfoReq struct {
-	UserId int `json:"user_id"`
+	UserId int `json:"uid"`
 	Status int `json:"status"`
 }
 
