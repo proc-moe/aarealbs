@@ -238,7 +238,7 @@ func DelRecord(c *gin.Context) {
 
 // api 2.4 批量添加词条
 type BatchAddRecordReq struct {
-	Batches []BatchAddSingleRecordReq
+	Batches []BatchAddSingleRecordReq `json:"data"`
 }
 
 type BatchAddSingleRecordReq struct {

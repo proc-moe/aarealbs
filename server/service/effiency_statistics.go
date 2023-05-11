@@ -1,8 +1,12 @@
 package service
 
-import "github.com/proc-moe/aarealbs/server/model"
+import (
+	"github.com/proc-moe/aarealbs/server/model"
+	"github.com/proc-moe/aarealbs/server/utils/klog"
+)
 
 func UpdateEffiency(uid int, isForget int, respTime int) {
+	klog.I("Update Effiency")
 	x := model.EffiencyStats{}
 	r := model.DB.Where("user_info_id = ?", uid).Find(&x)
 

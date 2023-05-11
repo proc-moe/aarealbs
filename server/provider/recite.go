@@ -100,6 +100,8 @@ type UserQueue struct {
 	UpdatedAt      string `json:"updated_at"`
 	DeletedAt      string `json:"deleted_at"`
 	UserId         int    `json:"uid"`
+	Msg            string `json:"msg"`
+	RespMsg        string `json:"resp_msg"`
 	RecordInfoID   int    `json:"record_info_id"`
 	RemindTimeUnix int    `json:"remind_time_unix"`
 	Round          int    `json:"round"`
@@ -183,6 +185,10 @@ func GetUserQueue(c *gin.Context) {
 
 	rspQueue := make([]UserQueue, 0)
 	for _, v := range DBQueue {
+		record := model.RecordInfo{}
+		klog.I("id = %v", v.RecordInfoID)
+		model.DB.Unscoped().Where("id = ?", v.RecordInfoID).First(&record)
+		klog.I("record = %#v", record)
 		queue := UserQueue{
 			ID:             int(v.ID),
 			CreatedAt:      v.CreatedAt.Format(time.RFC822),
@@ -190,6 +196,8 @@ func GetUserQueue(c *gin.Context) {
 			DeletedAt:      v.DeletedAt.Time.Format(time.RFC822),
 			UserId:         int(v.UserInfoID),
 			RecordInfoID:   int(v.RecordInfoID),
+			Msg:            record.Msg,
+			RespMsg:        record.RespMsg,
 			RemindTimeUnix: int(v.RemindTimeUnix),
 			Round:          int(v.Round),
 			RoundMax:       int(v.RoundMax),
@@ -387,7 +395,7 @@ func Recite(c *gin.Context) {
 
 	// 计算下一次
 	recordInfo := &model.RecordInfo{}
-	r = model.DB.Where("id = ?", reciteQueue.RecordInfoID).First(&recordInfo)
+	r = model.DB.Unscoped().Where("id = ?", reciteQueue.RecordInfoID).First(&recordInfo)
 	if r.RowsAffected == 0 || r.Error != nil {
 		rsp := EditRecordRsp{
 			Code: e.DATA_NOT_FOUND,
@@ -407,6 +415,7 @@ func Recite(c *gin.Context) {
 	recitePattern := &model.RecitePattern{}
 	r = model.DB.Where("p_id = ? AND round = ?", recordInfo.PatternID, reciteQueue.Round).First(&recitePattern)
 
+	service.UpdateEffiency(int(reciteQueue.UserInfoID), req.Result, int(time.Now().Unix())-int(reciteQueue.CreatedAt.Unix())-int(oldPattern.TimeGapEst))
 	// 背完了
 	klog.I("now: %v", time.Now().Unix())
 	klog.I("queue remind time: %v", reciteQueue.RemindTimeUnix)
@@ -426,7 +435,6 @@ func Recite(c *gin.Context) {
 			klog.I("create history, row=%v", r.RowsAffected)
 			return nil
 		})
-		service.UpdateEffiency(int(reciteQueue.UserInfoID), req.Result, int(time.Now().Unix())-int(reciteQueue.CreatedAt.Unix())-int(oldPattern.TimeGapEst))
 		service.ReciteProcessReciteDone(int(reciteQueue.UserInfoID))
 		rsp := ReciteRsp{
 			Code: 200,
@@ -460,7 +468,7 @@ func Recite(c *gin.Context) {
 			UserInfoID:   reciteQueue.UserInfoID,
 			RecordInfoID: reciteQueue.RecordInfoID,
 			TimeGap:      uint(time.Now().Unix() - reciteQueue.CreatedAt.Unix()),
-			TimeGapEst:   recitePattern.TimeGapEst,
+			TimeGapEst:   oldPattern.TimeGapEst,
 			Result:       uint(req.Result),
 		})
 		klog.I("create history, row=%v", r.RowsAffected)
@@ -565,12 +573,18 @@ func GetUserTimeUpQueue(c *gin.Context) {
 
 	rspQueue := make([]UserQueue, 0)
 	for _, v := range DBQueue {
+		record := model.RecordInfo{}
+		klog.I("id = %v", v.RecordInfoID)
+		model.DB.Unscoped().Where("id = ?", v.RecordInfoID).First(&record)
+		klog.I("record = %#v", record)
 		queue := UserQueue{
 			ID:             int(v.ID),
 			CreatedAt:      v.CreatedAt.Format(time.RFC822),
 			UpdatedAt:      v.UpdatedAt.Format(time.RFC822),
 			DeletedAt:      v.DeletedAt.Time.Format(time.RFC822),
 			UserId:         int(v.UserInfoID),
+			Msg:            record.Msg,
+			RespMsg:        record.RespMsg,
 			RecordInfoID:   int(v.RecordInfoID),
 			RemindTimeUnix: int(v.RemindTimeUnix),
 			Round:          int(v.Round),

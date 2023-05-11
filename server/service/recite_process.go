@@ -1,8 +1,12 @@
 package service
 
-import "github.com/proc-moe/aarealbs/server/model"
+import (
+	"github.com/proc-moe/aarealbs/server/model"
+	"github.com/proc-moe/aarealbs/server/utils/klog"
+)
 
 func ReciteProcessAdd(uid int) {
+	klog.I("ReciteProcessAdd uid=%v", uid)
 	var reciteProcess model.ReciteProcess
 	r := model.DB.Where("user_info_id = ?", uid).First(&reciteProcess)
 	if r.RowsAffected == 0 {

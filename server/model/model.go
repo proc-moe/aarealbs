@@ -13,7 +13,7 @@ var DB *gorm.DB
 func Init() {
 	var err error
 
-	dsn := "proc-moe:123@tcp(localhost:3306)/remember?parseTime=true"
+	dsn := "cyq:123@tcp(localhost:3306)/remember?parseTime=true"
 	DB, err = gorm.Open(mysql.New(mysql.Config{
 		DSN:               dsn,
 		DefaultStringSize: 256,

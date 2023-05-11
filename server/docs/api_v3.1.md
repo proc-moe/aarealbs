@@ -361,7 +361,7 @@ authorization - string
 
 ## 获取单用户信息
 比如说获取用户本人的信息的时候可以用这个
-URL: localhost:9987/api/user/single/:id
+URL: localhost:9987/api/user/:id
 
 method: GET
 
@@ -758,7 +758,7 @@ URL:localhost:9987/api/timeup_queue/user/:user_id?offset=${offset}&limit=${limit
 URL:localhost:9987/api/timeup_queue/user/:user_id?offset=${offset}&limit=${limit}
 ```
 
-method: POST
+method: GET
 
 请求头 HEADERS
 ```
@@ -823,7 +823,7 @@ URL:localhost:9987/api/timeup_queue/user/all?offset=${offset}&limit=${limit}
 URL:localhost:9987/api/timeup_queue/user/all?offset=${offset}&limit=${limit}
 ```
 
-method: POST
+method: GET
 
 请求头 HEADERS
 ```

@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/proc-moe/aarealbs/server/e"
 	"github.com/proc-moe/aarealbs/server/model"
+	"github.com/proc-moe/aarealbs/server/utils/auth"
 )
 
 type LoginReq struct {
@@ -81,4 +82,25 @@ func AddToken(c *gin.Context) {
 		returnmsg = "added"
 	}
 	c.JSON(200, returnmsg)
+}
+
+type IsAdminRsp struct {
+	IsAdmin int `json:"is_admin"`
+}
+
+// API 1.1
+func IsAdmin(c *gin.Context) {
+	token := c.Request.Header.Get("authorization")
+	err1 := auth.UserIsAdmin(token)
+	if err1 == nil {
+		x := IsAdminRsp{
+			IsAdmin: 1,
+		}
+		c.JSON(200, x)
+	} else {
+		x := IsAdminRsp{
+			IsAdmin: 0,
+		}
+		c.JSON(200, x)
+	}
 }
